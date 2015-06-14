@@ -55,12 +55,12 @@ void SystemInit()
 static void DEV_mdbSwitch(ST_MDB *mdb)
 {
 	uint8 res;
-	res = BT_open(mdb->binNo,mdb->sw.col);
+	res = BT_open(mdb->bin_no,mdb->col_no);
 	if(res == 1){
-		MDB_setStatus(mdb->mdbAddr,MDB_COL_SUCCESS);
+		MDB_setStatus(mdb->bin_no,MDB_COL_SUCCESS);
 	}
 	else{
-		MDB_setStatus(mdb->mdbAddr,MDB_COL_FAILED);
+		MDB_setStatus(mdb->bin_no,MDB_COL_FAILED);
 	}
 	
 }
@@ -69,22 +69,21 @@ static void DEV_mdbCtrl(ST_MDB *mdb)
 {
 	uint8 res;
 	if(mdb->bin.islight == 1){
-		res = EV_bento_light(mdb->binNo,mdb->ctrl.lightCtrl);
+		res = EV_bento_light(mdb->bin_no,mdb->ctrl.lightCtrl);
 	}
 	
 	if(mdb->bin.iscool == 1){
-		res = EV_bento_light(mdb->binNo,mdb->ctrl.coolCtrl);
+		res = EV_bento_light(mdb->bin_no,mdb->ctrl.coolCtrl);
 	}
 	if(mdb->bin.ishot == 1){
-		res = EV_bento_light(mdb->binNo,mdb->ctrl.hotCtrl);
+		res = EV_bento_light(mdb->bin_no,mdb->ctrl.hotCtrl);
 	}
-	
-	
+
 	if(res == 1){
-		MDB_setStatus(mdb->mdbAddr,MDB_COL_IDLE);
+		MDB_setStatus(mdb->bin_no,MDB_COL_IDLE);
 	}
 	else{
-		MDB_setStatus(mdb->mdbAddr,MDB_COL_ERROR);
+		MDB_setStatus(mdb->bin_no,MDB_COL_IDLE);
 	}
 	
 }
@@ -95,6 +94,7 @@ static void DEV_mdbReset(ST_MDB *mdb)
 	uint8 res;
 	print_dev("DEV_mdbReset:%d\r\n",mdb->binNo);
 	res = 1;
+	#if 0
 	//res = EV_bento_check(mdb->binNo,&mdb->bin);
 	if(res == 1){
 		MDB_setStatus(mdb->mdbAddr,MDB_COL_JUSTRESET);
@@ -102,6 +102,7 @@ static void DEV_mdbReset(ST_MDB *mdb)
 	else{
 		MDB_setStatus(mdb->mdbAddr,MDB_COL_ERROR);
 	}
+	#endif
 	//print_dev("MDB_getRequest() = %d\r\n",MDB_getStatus(mdb->mdbAddr));
 	
 }

@@ -64,22 +64,18 @@
 /*********************************************************************************************************
 **MDB从设备定义
 *********************************************************************************************************/
+#define MDB_ADDR		0x68
 
-#if 0
 #define RESET			0x00
+
 #define SWITCH			0x01
 #define CTRL			0x02
 #define COLUMN			0x03
 #define POLL			0x04
 #define STATUS			0x05
-#endif
 
-#define RESET			0x01
-#define SWITCH			0x02
-#define CTRL			0x03
-#define COLUMN			0x04
-#define POLL			0x05
-#define STATUS			0x06
+
+
 
 
 #define  MDB_ACK 		  	0x00			//应答
@@ -92,8 +88,8 @@
 #define MDB_COL_FAILED		2
 #define MDB_COL_RESERVED	3
 #define MDB_COL_SUCCESS		4
-#define MDB_COL_ERROR		5
-#define MDB_COL_JUSTRESET	6
+//#define MDB_COL_ERROR		5
+//#define MDB_COL_JUSTRESET	6
 #define MDB_COL_N_A			0xEE
 
 
@@ -108,7 +104,7 @@ typedef struct _st_column_{
 }ST_COLUMN;
 
 
-#define MDB_BIN_SIZE	4
+#define MDB_BIN_SIZE	32    //支持的最大货柜数 
 
 typedef struct _st_bin_{
 	uint8 ishot;
@@ -148,8 +144,9 @@ typedef struct _mdb_ctrl_{
 
 typedef struct _st_mdb_{
 	uint8 cmd;
-	uint8 mdbAddr;
-	uint8 binNo;
+	uint8 exsit; //存在标志
+	uint8 bin_no;
+	uint8 col_no;
 	MDB_CTRL ctrl;
 	MDB_SWITCH sw;
 	ST_BIN bin;
@@ -185,7 +182,7 @@ unsigned char MDB_colAddrIsOk(unsigned char addr);
 unsigned char MDB_recvOk(unsigned char len);
 void MDB_analysis(void);
 void MDB_binInit(void);
-ST_MDB *MDB_getPtr(void);
+ST_MDB *MDB_getBinPtr(uint8 no);
 
 #endif
 

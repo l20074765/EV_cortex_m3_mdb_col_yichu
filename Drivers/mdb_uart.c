@@ -42,8 +42,7 @@ static volatile uint8 mdb_status = MDB_DEV_IDLE;
 static volatile uint8 mdb_addr = 0;
 static volatile uint8 mdb_cmd = 0;
 
-const uint8 m_addr[MDB_BIN_SIZE] = {0x80,0x88,0xE0,0xE8};
-volatile uint8 mdb_bin[MDB_BIN_SIZE] = {0};
+static volatile uint8 mdb_cur_no = 0;
 
 /*********************************************************************************************************
 ** MDB通信
@@ -53,29 +52,23 @@ volatile uint8 m_mdbSendStatus[MDB_BIN_SIZE] = {MDB_COL_IDLE};
 ST_MDB stMdb[MDB_BIN_SIZE];
 
 
-uint8 MDB_getIndex(uint8 addr)
+uint8 MDB_binIsExsit(uint8 no)
 {
-	uint8 i;
-	for(i = 0;i < MDB_BIN_SIZE;i++){
-		if(m_addr[i] == addr){
-			return i;
-		}
+	if(no == 0 || no > MDB_BIN_SIZE){ //柜号不符
+		return 0;
 	}
-	return MDB_COL_N_A;
-}
-
-
-ST_MDB *MDB_getPtr(void)
-{
-	uint8 i;
-	i = MDB_getIndex(mdb_addr);
-	if(i == MDB_COL_N_A){
-		return NULL;;
+	
+	if(stMdb[no - 1].exsit == 1){
+		return 1;
 	}
 	else{
-		return &stMdb[i];
+		return 0;
 	}
+
 }
+
+
+
 
 
 
@@ -89,19 +82,16 @@ ST_MDB *MDB_getPtr(void)
 uint8 MDB_getRequest(ST_MDB **mdb)
 {
 	uint8 i;
-	i = MDB_getIndex(mdb_addr);
-	if(i == MDB_COL_N_A){
-		return 0;
-	}
-	else{
-		if(m_mdbStatus[i] == MDB_COL_BUSY){
-			*mdb = &stMdb[i];
-			return (*mdb == NULL) ? 0 : 1;
-		}
-		else{
-			return 0;
+	for(i = 0;i < MDB_BIN_SIZE;i++){
+		if(MDB_binIsExsit(i + 1)){
+			if(m_mdbStatus[i] == MDB_COL_BUSY){
+				*mdb = &stMdb[i];
+				return (*mdb == NULL) ? 0 : 1;
+			}
 		}
 	}
+	
+	return 0;
 }
 
 /*********************************************************************************************************
@@ -113,13 +103,11 @@ uint8 MDB_getRequest(ST_MDB **mdb)
 *********************************************************************************************************/
 uint8 MDB_getStatus(uint8 addr)
 {
-	uint8 i;
-	i = MDB_getIndex(addr);
-	if(i == MDB_COL_N_A){
-		return MDB_COL_N_A;
+	if(MDB_binIsExsit(addr)){
+		return m_mdbStatus[addr - 1];
 	}
 	else{
-		return m_mdbStatus[i];
+		return MDB_COL_N_A;
 	}
 }
 
@@ -136,10 +124,8 @@ uint8 MDB_getStatus(uint8 addr)
 *********************************************************************************************************/
 void MDB_setStatus(uint8 addr,uint8 s)
 {
-	uint8 i;
-	i = MDB_getIndex(addr);
-	if(i != MDB_COL_N_A){
-		m_mdbStatus[i] = s;
+	if(MDB_binIsExsit(addr)){
+		m_mdbStatus[addr - 1] = s;
 	}
 }
 
@@ -150,15 +136,13 @@ void MDB_setStatus(uint8 addr,uint8 s)
 ** output parameters:   无
 ** Returned value:      0 无请求 1正在处理请求 2处理完成
 *********************************************************************************************************/
-uint8 MDB_getSendStatus(void)
+uint8 MDB_getSendStatus(uint8 addr)
 {
-	uint8 i;
-	i = MDB_getIndex(mdb_addr);
-	if(i == MDB_COL_N_A){
-		return MDB_COL_N_A;
+	if(MDB_binIsExsit(addr)){
+		return m_mdbSendStatus[addr - 1];
 	}
 	else{
-		return m_mdbSendStatus[i];
+		return MDB_COL_N_A;
 	}
 }
 
@@ -171,10 +155,8 @@ uint8 MDB_getSendStatus(void)
 *********************************************************************************************************/
 void MDB_setSendStatus(uint8 addr,uint8 s)
 {
-	uint8 i;
-	i = MDB_getIndex(addr);
-	if(i != MDB_COL_N_A){
-		m_mdbSendStatus[i] = s;
+	if(MDB_binIsExsit(addr)){
+		m_mdbSendStatus[addr - 1] = s;
 	}
 }
 
@@ -190,9 +172,9 @@ void MDB_setSendStatus(uint8 addr,uint8 s)
 static void MDB_recv_ack(uint8 cmd)
 {
 	if(cmd == POLL){
-		if(MDB_getSendStatus() != MDB_COL_BUSY){
-			MDB_setStatus(mdb_addr,MDB_COL_IDLE);
-			MDB_setSendStatus(mdb_addr,MDB_COL_IDLE);
+		if(MDB_getSendStatus(mdb_cur_no) != MDB_COL_BUSY){
+			MDB_setStatus(mdb_cur_no,MDB_COL_IDLE);
+			MDB_setSendStatus(mdb_cur_no,MDB_COL_IDLE);
 		}
 	}	
 }
@@ -387,29 +369,22 @@ void Uart2IsrHandler(void)
 
 unsigned char MDB_colAddrIsOk(unsigned char addr)
 {
-	uint8 i;
-	for(i = 0;i < MDB_BIN_SIZE;i++){
-		if(addr == m_addr[i] && mdb_bin[i] == 1){
-			return 1;
-		}
-	}
-	return 0;
+	return (addr == MDB_ADDR);
 }
 
 
 unsigned char MDB_recvOk(unsigned char len)
 {
 	unsigned char ok = 0;
-	
 	switch(mdb_cmd){
-		case RESET : case COLUMN :case POLL :case STATUS :
-			if(len >= 2) ok = 1;
+		case RESET : case COLUMN :case POLL :
+			if(len >= 3) ok = 1;
 			break;
 		case SWITCH: 
-			if(len >= 4) ok = 1;
+			if(len >= 5) ok = 1;
 			break;
 		case CTRL:	
-			if(len >= 6) ok = 1;
+			if(len >= 7) ok = 1;
 			break;
 		default:break;
 	}
@@ -459,26 +434,15 @@ void MDB_binInit(void)
 		for(j = 0;j < 2;j++){
 			res = EV_bento_check(i + 1,&stMdb[i].bin);
 			if(res == 1){
-				stMdb[i].binNo = i + 1;
-				stMdb[i].mdbAddr = m_addr[i];
-				print_mdb("MDB_binInit:mdb[%d].addr=%02x,no=%d,sum=%d\r\n",
-				i,stMdb[i].mdbAddr,stMdb[i].binNo,stMdb[i].bin.sum);
+				stMdb[i].exsit = 1;
 				break;
 			}
 			else{
-				stMdb[i].binNo = 0;
+				stMdb[i].exsit = 0;
 			}
 		}
 	}
 	
-	for(i = 0;i < MDB_BIN_SIZE;i++){
-		if(stMdb[i].binNo == 0){
-			mdb_bin[i] = 0;
-		}
-		else{
-			mdb_bin[i] = 1;
-		}
-	}
 }
 
 
@@ -487,129 +451,138 @@ void MDB_binInit(void)
 
 static void MDB_poll_rpt(void)
 {
-	uint8 s = MDB_getStatus(mdb_addr);
+	uint8 buf[4] = {0};
+	buf[0] = MDB_ADDR + RESET;
+	buf[1] = recvbuf[1];
+	buf[2] = MDB_getStatus(buf[1]);
 	//print_mdb("MDB_poll_rpt:s = %d addr=%x\r\n",s,mdb_addr);
-	MDB_setSendStatus(mdb_addr,s);
-	MDB_send(&s,1);
+	MDB_setSendStatus(buf[1],buf[2]);	
+	MDB_send(buf,3);
 }
+
+
+
 
 static void MDB_reset_rpt(ST_MDB *mdb)
 {
-	//uint8 no;
-	if(MDB_getStatus(mdb->mdbAddr) == MDB_COL_BUSY){
-		MDB_sendACK(0);
-	}
-	else{
-		//memset(&mdb->bin,0,sizeof(ST_BIN));
-		mdb->cmd = G_MDB_RESET;
-		MDB_setStatus(mdb->mdbAddr,MDB_COL_BUSY);
-		MDB_sendACK(1);
-	}
+	uint8 buf[2] = {0};
+	buf[0] = MDB_ADDR + RESET;
+	buf[1] = recvbuf[1];
+	MDB_send(buf,2);
 }
 
 
 static void MDB_switch_rpt(ST_MDB *mdb)
 {
-	uint8 column;
-	if(MDB_getStatus(mdb->mdbAddr) == MDB_COL_BUSY){
-		MDB_sendACK(0);
+
+	uint8 buf[2] = {0};
+	buf[0] = MDB_ADDR + SWITCH;
+	buf[1] = recvbuf[1];
+	
+	mdb->bin_no = recvbuf[1];
+	if(MDB_getStatus(mdb->bin_no) == MDB_COL_BUSY){ 
+		//MDB_sendACK(0); 忙状态不回应
 	}
 	else{
-		column = recvbuf[1];
-		mdb = MDB_getPtr();
 		mdb->cmd = G_MDB_SWITCH;
-		mdb->sw.col = column;
-		MDB_setStatus(mdb->mdbAddr,MDB_COL_BUSY);
-		MDB_sendACK(1);
+		mdb->bin_no = recvbuf[1];
+		mdb->col_no = recvbuf[2];
+		MDB_setStatus(mdb->bin_no,MDB_COL_BUSY);
+		MDB_send(buf,2);
 	}
 	
 }
 
+
+
+
+
 static void MDB_ctrl_rpt(ST_MDB *mdb)
 {
 	MDB_CTRL *ctrl;
-	if(MDB_getStatus(mdb->mdbAddr) == MDB_COL_BUSY){
+	uint8 buf[2] = {0};
+	
+	mdb->bin_no = recvbuf[1];
+	
+	buf[0] = MDB_ADDR + CTRL;
+	buf[1] = recvbuf[1];
+	
+	
+	if(MDB_getStatus(mdb->bin_no) == MDB_COL_BUSY){
 		MDB_sendACK(0);
 	}
 	else{
 		mdb->cmd = G_MDB_CTRL;
 		ctrl = &mdb->ctrl;
-		ctrl->coolCtrl = recvbuf[1] & 0x01;
-		ctrl->lightCtrl = (recvbuf[1] >> 1) & 0x01;
-		ctrl->hotCtrl = (recvbuf[1] >> 2) & 0x01;
-		ctrl->coolTemp = (int8)recvbuf[2];
-		ctrl->hotTemp  = (int8)recvbuf[3];	
-		MDB_setStatus(mdb->mdbAddr,MDB_COL_BUSY);
-		MDB_sendACK(1);
+		ctrl->coolCtrl = recvbuf[2] & 0x01;
+		ctrl->lightCtrl = (recvbuf[2] >> 1) & 0x01;
+		ctrl->hotCtrl = (recvbuf[2] >> 3) & 0x01;
+		ctrl->coolTemp = (int8)recvbuf[3];
+		ctrl->hotTemp  = (int8)recvbuf[4];	
+		MDB_setStatus(mdb->bin_no,MDB_COL_BUSY);
+		MDB_send(buf,2);
 	}
 }
 
 static void MDB_column_rpt(ST_MDB *mdb)
 {
-	uint8 index = 0,i,j,temp,colindex = 0;
+	uint8 index = 0,i,temp;
 	uint8 buf[36] = {0};
 	ST_BIN *bin;
+	
 	bin = &mdb->bin;
+	
 	if(bin == NULL){
 		MDB_sendACK(0);
 	}
 	else{
-		//bin->sum = 64;	
-		for(i = 0;i < (bin->sum / 8);i++){
+		mdb->bin_no = recvbuf[1];
+		buf[index++] = MDB_ADDR + COLUMN;
+		buf[index++] = recvbuf[1];
+		//货道最大40个货道
+		for(i = 0;i < 6;i++){
 			temp = 0;
+			#if 0
 			for(j = 0;j < 8;j++){
 				if(bin->col[colindex++].empty == 1){
 					temp |= (0x01 << j);
 				}
 			}
+			#endif
 			buf[index++] = temp;
 		}
-		if(bin->sum % 8){
-			temp = 0;
-			for(j = 0;j < (bin->sum % 8);j++){
-				if(bin->col[colindex++].empty == 1){
-					temp |= (0x01 << j);
-				}
-			}
-			buf[index++] = temp;
-		}
+		
 		buf[index++] = bin->sum;
-		buf[index++] = bin->sensorFault & 0x01;
-		buf[index++] = bin->coolTemp;
-		buf[index++] = bin->hotTemp;	
+		buf[index++] = 0x00; //reserved
+		buf[index++] = 0x00; //左室温度
+		buf[index++] = 0x00; //预留
+		buf[index++] = 0x00; //右室温度
+	
 		MDB_send(buf,index);		
 	}
 	
 }
 
 
-static void MDB_status_rpt(ST_MDB *mdb)
-{
-	uint8 index = 0,buf[16] = {0};
-	ST_BIN *bin;
-	bin = &mdb->bin;
-	if(bin == NULL){
-		MDB_sendACK(0);
-	}
-	else{
-		buf[index++] = 0x12;
-		buf[index++] = 0x34;
-		buf[index++] = bin->sum;
-		buf[index++] = 0;//reserved
-		buf[index++] = 0;//reserved
-		buf[index++] = (0x00 << 3) | (bin->ishot << 1) | (bin->iscool << 0);//feature
-		buf[index++] = 0;//reserved
-		buf[index++] = 0;//reserved
-		MDB_send(buf,index);
-	}
-	
-	
-}
+
 
 void MDB_analysis(void)
 {
-	ST_MDB *mdb;
-	mdb = MDB_getPtr();
+	ST_MDB *mdb = NULL;
+	mdb_cur_no = recvbuf[1];
+	if(mdb_cur_no == 0 || mdb_cur_no > MDB_BIN_SIZE){ //柜号不符
+		return;
+	}
+	
+	mdb = &stMdb[mdb_cur_no - 1];
+	if(MDB_binIsExsit(mdb_cur_no) == 0){ //柜子不存在则不能应答
+		if(mdb_cmd == RESET){ //探测命令任务需要初始化
+			mdb->cmd = G_MDB_RESET;
+			mdb->bin_no = recvbuf[1];
+		}
+		return;
+	}
+	
 	switch(mdb_cmd){
 		case RESET : 
 			MDB_reset_rpt(mdb);
@@ -625,9 +598,6 @@ void MDB_analysis(void)
 			break;
 		case COLUMN:
 			MDB_column_rpt(mdb);
-			break;
-		case STATUS:
-			MDB_status_rpt(mdb);
 			break;
 		default:break;
 	}
