@@ -6,7 +6,7 @@ typedef unsigned char (*FUN_uartGetCh)(void);
 typedef void (*FUN_uartClear)(void);
 typedef void (*FUN_uartPutStr)(unsigned char const *Str, unsigned int Len);
 
-#if 1
+#if 0
 static FUN_uartIsNotEmpty uartIsNotEmpty = Uart3BuffIsNotEmpty;
 static FUN_uartGetCh uartGetCh = Uart3GetCh;
 static FUN_uartClear uartClear = uart3_clr_buf;
@@ -146,17 +146,19 @@ uint8 BT_send(uint8 cmd,uint8 cabinet,uint8 arg,uint8 *rdata)
 
 uint8 BT_open(uint8 cabinet,uint8 box)
 {
-    uint8 ret,i,ok = 0;
+    uint8 ret,i;
 	if(cabinet <= 0 || box <= 0)
 		return 0;
-	
+	#if 0
 	ok = 0;
 	for(i = 0;i < 2;i++){
 		ret = BT_send(BT_TYPE_OPEN,cabinet,box,NULL);
 		ok = (ret == 1) ? 1 : ok;
 		msleep(300);
 	}
-    return ok;
+	#endif
+	ret = BT_send(BT_TYPE_OPEN,cabinet,box,NULL);
+    return ret;
 }
 
 

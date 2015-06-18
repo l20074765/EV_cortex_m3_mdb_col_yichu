@@ -1,7 +1,7 @@
 #include "deviceTask.h"
 #include "..\config.h"
 
-//#define DEV_DEBUG
+#define DEV_DEBUG
 #ifdef DEV_DEBUG
 
 #define print_dev(...)	Trace(__VA_ARGS__)
@@ -9,26 +9,10 @@
 #define print_dev(...)
 #endif
 
-//按键邮箱句柄
-OS_EVENT *g_KeyMsg;
-void *KeyMsgArray[2]; // 按键队列数组
+
 
 extern OS_EVENT *g_mdb_event; //声明MDb事件
 
-
-
-/*********************************************************************************************************
-** Function name:       CreateMBox
-** Descriptions:        为任务之间通信创建邮箱和信号量
-** input parameters:    无
-** output parameters:   无
-** Returned value:      无
-*********************************************************************************************************/
-void CreateMBox(void)
-{
-	//创建按键邮箱
-	g_KeyMsg = OSQCreate(&KeyMsgArray[0],2);
-}
 
 /*********************************************************************************************************
 ** Function name:       SystemInit
@@ -54,8 +38,12 @@ void SystemInit()
 //出货 
 static void DEV_mdbSwitch(ST_MDB *mdb)
 {
-	uint8 res;
-	res = BT_open(mdb->bin_no,mdb->col_no);
+	uint8 res,col;
+	if(mdb->col_no == 0){
+		return;
+	}
+	col = mdb->col_addr[mdb->col_no - 1];
+	res = BT_open(mdb->bin_addr,col);
 	if(res == 1){
 		MDB_setStatus(mdb->bin_no,MDB_COL_SUCCESS);
 	}
@@ -68,15 +56,15 @@ static void DEV_mdbSwitch(ST_MDB *mdb)
 static void DEV_mdbCtrl(ST_MDB *mdb)
 {
 	uint8 res;
-	if(mdb->bin.islight == 1){
-		res = EV_bento_light(mdb->bin_no,mdb->ctrl.lightCtrl);
+	if(mdb->islight == 1){
+		res = EV_bento_light(mdb->bin_addr,mdb->ctrl.lightCtrl);
 	}
 	
-	if(mdb->bin.iscool == 1){
-		res = EV_bento_light(mdb->bin_no,mdb->ctrl.coolCtrl);
+	if(mdb->iscool == 1){
+		res = EV_bento_light(mdb->bin_addr,mdb->ctrl.coolCtrl);
 	}
-	if(mdb->bin.ishot == 1){
-		res = EV_bento_light(mdb->bin_no,mdb->ctrl.hotCtrl);
+	if(mdb->ishot == 1){
+		res = EV_bento_light(mdb->bin_addr,mdb->ctrl.hotCtrl);
 	}
 
 	if(res == 1){
@@ -89,22 +77,69 @@ static void DEV_mdbCtrl(ST_MDB *mdb)
 }
 
 
-static void DEV_mdbReset(ST_MDB *mdb)
+static void DEV_mdbInit(void)
 {
-	uint8 res;
-	print_dev("DEV_mdbReset:%d\r\n",mdb->binNo);
-	res = 1;
-	#if 0
-	//res = EV_bento_check(mdb->binNo,&mdb->bin);
-	if(res == 1){
-		MDB_setStatus(mdb->mdbAddr,MDB_COL_JUSTRESET);
+	uint8 res,sum,i,col,j,z;
+	ST_BIN bin;
+	uint8 binAddr = 1;
+	uint8 exsit[MDB_BIN_SIZE] = {0};
+
+	for(i = 0;i < MDB_BIN_SIZE;i++){
+		memset((void *)&stMdb[i],0,sizeof(ST_MDB));
 	}
-	else{
-		MDB_setStatus(mdb->mdbAddr,MDB_COL_ERROR);
-	}
-	#endif
-	//print_dev("MDB_getRequest() = %d\r\n",MDB_getStatus(mdb->mdbAddr));
 	
+	for(i = 0;i < MDB_BIN_SIZE;){
+		print_dev("DEV_mdbInit:[%d]\r\n",binAddr);
+		for(j = 0;j < 2;j++){
+			res = EV_bento_check(binAddr,&bin);
+			if(res == 1){
+				break;
+			}
+		}
+		if(res != 1){
+			break;
+		}
+		
+		sum = bin.sum;
+		col = 1;
+		while(sum >= 40){
+			sum -= 40;
+			stMdb[i].sum = 40;
+			for(z = 0;z < 40;z++){
+				stMdb[i].col_addr[z] = col++;
+			}
+			stMdb[i].iscool = bin.iscool;
+			stMdb[i].ishot = bin.ishot;
+			stMdb[i].islight = bin.islight;
+			stMdb[i].bin_addr = binAddr;
+			stMdb[i].bin_no = i + 1;
+			
+			exsit[i] = 1;
+			//stMdb[i].exsit = 1;
+			i++;
+		}
+		if(sum > 0){
+			stMdb[i].sum = sum;
+			
+			for(z = 0;z < sum;z++){
+				stMdb[i].col_addr[z] = col++;
+			}
+			stMdb[i].iscool = bin.iscool;
+			stMdb[i].ishot = bin.ishot;
+			stMdb[i].islight = bin.islight;
+			stMdb[i].bin_addr = binAddr;
+			stMdb[i].bin_no = i + 1;
+			exsit[i] = 1;
+			//stMdb[i].exsit = 1;
+			i++;
+		}
+		binAddr++;	
+	}
+	
+	
+	for(i = 0;i < MDB_BIN_SIZE;i++){
+		stMdb[i].exsit = exsit[i];
+	}
 }
 
 
@@ -114,10 +149,11 @@ static void DEV_mdbReset(ST_MDB *mdb)
 void DEV_taskPoll(void)
 {
 	ST_MDB *mdb = NULL;
+	
 	if(MDB_getRequest(&mdb) == 1){
 		switch(mdb->cmd){
 			case G_MDB_RESET:
-				DEV_mdbReset(mdb);
+				//DEV_mdbReset(mdb);
 				break;
 			case G_MDB_SWITCH:
 				DEV_mdbSwitch(mdb);
@@ -135,14 +171,14 @@ void DEV_taskPoll(void)
 
 void DEV_task(void *pdata)
 {	
-	//uint32 i;
 	//系统基本接口初始化
 	SystemInit();
-	//print_dev("Hello Booooo...\r\n");
 	FIO2DIR &= ~(0x01UL << 2);
-	//建立邮箱、信号量	
-	CreateMBox();
-	MDB_binInit();//初始化柜子
+	
+	print_dev("DEV_task:start....\r\n");
+	//MDB_binInit();//初始化柜子
+	msleep(1000);
+	DEV_mdbInit();
 	while(1){
 		DEV_taskPoll();
 		msleep(20);

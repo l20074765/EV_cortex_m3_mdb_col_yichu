@@ -67,7 +67,6 @@
 #define MDB_ADDR		0x68
 
 #define RESET			0x00
-
 #define SWITCH			0x01
 #define CTRL			0x02
 #define COLUMN			0x03
@@ -104,7 +103,7 @@ typedef struct _st_column_{
 }ST_COLUMN;
 
 
-#define MDB_BIN_SIZE	32    //支持的最大货柜数 
+#define MDB_BIN_SIZE	16    //支持的最大货柜数 
 
 typedef struct _st_bin_{
 	uint8 ishot;
@@ -147,12 +146,22 @@ typedef struct _st_mdb_{
 	uint8 exsit; //存在标志
 	uint8 bin_no;
 	uint8 col_no;
+	uint8 sum;//柜子货道总数 最大不超过40
+	uint8 ishot;
+	uint8 iscool;
+	uint8 islight;
+	uint8 isemptyCtrl;
+	
+	
+	uint8 bin_addr;//柜子的真实地址
+	uint8 col_addr[40];//柜子内真实货道号
 	MDB_CTRL ctrl;
-	MDB_SWITCH sw;
-	ST_BIN bin;
+	//ST_BIN bin;
 }ST_MDB;
 
 extern ST_MDB stMdb[MDB_BIN_SIZE];
+
+
 
 
 #define G_MDB_RESET			0
@@ -180,7 +189,7 @@ void Uart2IsrHandler(void) ;
 *********************************************************************************************************/
 unsigned char MDB_colAddrIsOk(unsigned char addr);
 unsigned char MDB_recvOk(unsigned char len);
-void MDB_analysis(void);
+uint8 MDB_analysis(void);
 void MDB_binInit(void);
 ST_MDB *MDB_getBinPtr(uint8 no);
 
