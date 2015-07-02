@@ -343,7 +343,10 @@ void Uart2IsrHandler(void)
 							mdb_status = MDB_DEV_IDLE;
 						}
 						else{
-							mdb_status = MDB_DEV_RECV_ACK;
+							//易触协议 不是标准 MDB
+							MDB_recv_ack(mdb_cmd);
+							mdb_status = MDB_DEV_IDLE;
+							//mdb_status = MDB_DEV_RECV_ACK;
 						}
 						
 					}
@@ -398,7 +401,7 @@ unsigned char MDB_recvOk(unsigned char len)
 			break;
 		default:break;
 	}
-	
+	#if 0
 	if(ok == 1){
 		print_mdb("MDB-RECV[%d]:",len);
 		for(i = 0;i < len;i++){
@@ -406,6 +409,7 @@ unsigned char MDB_recvOk(unsigned char len)
 		}
 		print_mdb("\r\n");
 	}
+	#endif
 	//print_mdb("MDB_recvOk:cmd=%x,len=%d,ok=%x\r\n",mdb_cmd,len,ok);
 	
 	return ok;
@@ -439,12 +443,14 @@ uint8 MDB_send(uint8 *data,uint8 len)
 		}
 		MDB_putChr(crc,MDB_ADD);
 		
+		#if 0
 		print_mdb("MDB-SEND[%d]:",len + 1);
 		for(i = 0;i < len;i++){
 			print_mdb("%02x ",data[i]);
 		}
 		print_mdb("%02x ",crc);
 		print_mdb("\r\n");
+		#endif
 	}
 	uart2SetParityMode(PARITY_F_0);
 	//OSIntExit();
@@ -457,7 +463,7 @@ uint8 MDB_send(uint8 *data,uint8 len)
 static uint8 MDB_poll_rpt(void)
 {
 	uint8 buf[4] = {0};
-	buf[0] = MDB_ADDR + RESET;
+	buf[0] = MDB_ADDR + POLL;
 	buf[1] = recvbuf[1];
 	buf[2] = MDB_getStatus(buf[1]);
 	MDB_setSendStatus(buf[1],buf[2]);	
@@ -567,18 +573,18 @@ uint8 MDB_analysis(void)
 	ST_MDB *mdb = NULL;
 	uint8 res = 0;
 	mdb_cur_no = recvbuf[1];
-	print_mdb("MDB_analysis:no = %d,type=%x\r\n",mdb_cur_no,mdb_cmd);
+	//print_mdb("MDB_analysis:no = %d,type=%x\r\n",mdb_cur_no,mdb_cmd);
 	if(mdb_cur_no == 0 || mdb_cur_no > MDB_BIN_SIZE){ //柜号不符
 		return 0;
 	}
 	
 	mdb = &stMdb[mdb_cur_no - 1];
 	if(MDB_binIsExsit(mdb_cur_no) == 0){ //柜子不存在则不能应答
-		print_mdb("Exsit[NONE]\r\n");
+		//print_mdb("Exsit[NONE]\r\n");
 		return 0;
 	}
 	
-	print_mdb("Exsit[OK]\r\n");
+	//print_mdb("Exsit[OK]\r\n");
 	switch(mdb_cmd){
 		case RESET : 
 			res = MDB_reset_rpt(mdb);
