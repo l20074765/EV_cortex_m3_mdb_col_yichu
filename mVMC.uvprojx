@@ -47,7 +47,7 @@
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
           <OutputDirectory>.\Hex\</OutputDirectory>
-          <OutputName>EV_MDB_DRV_V1_3</OutputName>
+          <OutputName>EV_MDB_DRV_V1_6</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
@@ -173,7 +173,7 @@
             <Capability>1</Capability>
             <DriverSelection>4097</DriverSelection>
           </Flash1>
-          <bUseTDR>0</bUseTDR>
+          <bUseTDR>1</bUseTDR>
           <Flash2>BIN\UL2CM3.DLL</Flash2>
           <Flash3></Flash3>
           <Flash4></Flash4>

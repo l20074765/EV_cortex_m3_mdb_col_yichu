@@ -59,8 +59,7 @@ uint8 MDB_binIsExsit(uint8 no)
 	if(no == 0 || no > MDB_BIN_SIZE){ //柜号不符
 		return 0;
 	}
-	
-	print_mdb("MDB_binIsExsit:bin[%d]=%d\r\n",no,stMdb[no - 1].exsit);
+	//print_mdb("MDB_binIsExsit:bin[%d]=%d\r\n",no,stMdb[no - 1].exsit);
 	if(stMdb[no - 1].exsit == 1){
 		return 1;
 	}
@@ -88,7 +87,7 @@ uint8 MDB_getRequest(ST_MDB **mdb)
 	for(i = 0;i < MDB_BIN_SIZE;i++){
 		if(m_mdbStatus[i] == MDB_COL_BUSY){
 			*mdb = &stMdb[i];
-			print_mdb("MDB_getRequest:bin_no=%d\r\n",i + 1);
+		//	print_mdb("MDB_getRequest:bin_no=%d\r\n",i + 1);
 			return (*mdb == NULL) ? 0 : 1;
 		}
 	}
@@ -386,7 +385,7 @@ unsigned char MDB_colAddrIsOk(unsigned char addr)
 
 unsigned char MDB_recvOk(unsigned char len)
 {
-	unsigned char ok = 0;
+	unsigned char ok = 0,i;
 	switch(mdb_cmd){
 		case RESET : case COLUMN :case POLL :
 			if(len >= 3) ok = 1;
@@ -400,6 +399,13 @@ unsigned char MDB_recvOk(unsigned char len)
 		default:break;
 	}
 	
+	if(ok == 1){
+		print_mdb("MDB-RECV[%d]:",len);
+		for(i = 0;i < len;i++){
+			print_mdb("%02x ",recvbuf[i]);
+		}
+		print_mdb("\r\n");
+	}
 	//print_mdb("MDB_recvOk:cmd=%x,len=%d,ok=%x\r\n",mdb_cmd,len,ok);
 	
 	return ok;
@@ -432,34 +438,18 @@ uint8 MDB_send(uint8 *data,uint8 len)
 			crc += data[i];
 		}
 		MDB_putChr(crc,MDB_ADD);
+		
+		print_mdb("MDB-SEND[%d]:",len + 1);
+		for(i = 0;i < len;i++){
+			print_mdb("%02x ",data[i]);
+		}
+		print_mdb("%02x ",crc);
+		print_mdb("\r\n");
 	}
 	uart2SetParityMode(PARITY_F_0);
 	//OSIntExit();
 	return 1;	
 }
-
-
-
-void MDB_binInit(void)
-{
-	#if 0
-	uint8 i = 0,res,j;
-	for(i = 0;i < MDB_BIN_SIZE;i++){
-		memset(&stMdb[i],0,sizeof(ST_MDB));
-		for(j = 0;j < 2;j++){
-			res = EV_bento_check(i + 1,&stMdb[i].bin);
-			if(res == 1){
-				stMdb[i].exsit = 1;
-				break;
-			}
-			else{
-				stMdb[i].exsit = 0;
-			}
-		}
-	}
-	#endif
-}
-
 
 
 
@@ -470,7 +460,6 @@ static uint8 MDB_poll_rpt(void)
 	buf[0] = MDB_ADDR + RESET;
 	buf[1] = recvbuf[1];
 	buf[2] = MDB_getStatus(buf[1]);
-	//print_mdb("MDB_poll_rpt:s = %d addr=%x\r\n",s,mdb_addr);
 	MDB_setSendStatus(buf[1],buf[2]);	
 	MDB_send(buf,3);
 	return 1;
@@ -578,18 +567,18 @@ uint8 MDB_analysis(void)
 	ST_MDB *mdb = NULL;
 	uint8 res = 0;
 	mdb_cur_no = recvbuf[1];
-	
 	print_mdb("MDB_analysis:no = %d,type=%x\r\n",mdb_cur_no,mdb_cmd);
-	
 	if(mdb_cur_no == 0 || mdb_cur_no > MDB_BIN_SIZE){ //柜号不符
 		return 0;
 	}
 	
 	mdb = &stMdb[mdb_cur_no - 1];
 	if(MDB_binIsExsit(mdb_cur_no) == 0){ //柜子不存在则不能应答
+		print_mdb("Exsit[NONE]\r\n");
 		return 0;
 	}
 	
+	print_mdb("Exsit[OK]\r\n");
 	switch(mdb_cmd){
 		case RESET : 
 			res = MDB_reset_rpt(mdb);

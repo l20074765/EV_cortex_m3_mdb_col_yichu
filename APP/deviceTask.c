@@ -50,7 +50,6 @@ static void DEV_mdbSwitch(ST_MDB *mdb)
 	else{
 		MDB_setStatus(mdb->bin_no,MDB_COL_FAILED);
 	}
-	
 }
 
 static void DEV_mdbCtrl(ST_MDB *mdb)
@@ -61,10 +60,10 @@ static void DEV_mdbCtrl(ST_MDB *mdb)
 	}
 	
 	if(mdb->iscool == 1){
-		res = EV_bento_light(mdb->bin_addr,mdb->ctrl.coolCtrl);
+		res = EV_bento_col(mdb->bin_addr,mdb->ctrl.coolCtrl);
 	}
 	if(mdb->ishot == 1){
-		res = EV_bento_light(mdb->bin_addr,mdb->ctrl.hotCtrl);
+		res = EV_bento_hot(mdb->bin_addr,mdb->ctrl.hotCtrl);
 	}
 
 	if(res == 1){
@@ -113,14 +112,11 @@ static void DEV_mdbInit(void)
 			stMdb[i].islight = bin.islight;
 			stMdb[i].bin_addr = binAddr;
 			stMdb[i].bin_no = i + 1;
-			
 			exsit[i] = 1;
-			//stMdb[i].exsit = 1;
 			i++;
 		}
 		if(sum > 0){
 			stMdb[i].sum = sum;
-			
 			for(z = 0;z < sum;z++){
 				stMdb[i].col_addr[z] = col++;
 			}
@@ -130,16 +126,17 @@ static void DEV_mdbInit(void)
 			stMdb[i].bin_addr = binAddr;
 			stMdb[i].bin_no = i + 1;
 			exsit[i] = 1;
-			//stMdb[i].exsit = 1;
 			i++;
 		}
 		binAddr++;	
 	}
 	
 	
-	for(i = 0;i < MDB_BIN_SIZE;i++){
-		stMdb[i].exsit = exsit[i];
+	for(i = MDB_BIN_SIZE;i > 0;i--){
+		stMdb[i - 1].exsit = exsit[i - 1];
+		print_dev("stMdb[%d].exsit = %d\r\n",i - 1,stMdb[i - 1].exsit);
 	}
+	
 }
 
 
@@ -174,10 +171,8 @@ void DEV_task(void *pdata)
 	//系统基本接口初始化
 	SystemInit();
 	FIO2DIR &= ~(0x01UL << 2);
-	
 	print_dev("DEV_task:start....\r\n");
-	//MDB_binInit();//初始化柜子
-	msleep(1000);
+	msleep(500);
 	DEV_mdbInit();
 	while(1){
 		DEV_taskPoll();
