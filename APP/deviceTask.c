@@ -39,11 +39,16 @@ void SystemInit()
 static void DEV_mdbSwitch(ST_MDB *mdb)
 {
 	uint8 res,col;
+	print_dev("DEV_mdbSwitch:bin_no = %d,col_no=%d,bin_addr=%d,col_addr=%d\r\n",
+			mdb->bin_no,mdb->col_no,mdb->bin_addr,mdb->col_addr[mdb->col_no - 1]);
 	if(mdb->col_no == 0){
+		MDB_setStatus(mdb->bin_no,MDB_COL_FAILED);
 		return;
 	}
 	col = mdb->col_addr[mdb->col_no - 1];
 	res = BT_open(mdb->bin_addr,col);
+	
+	print_dev("DEV_mdbSwitch:res=%d\r\n",res);
 	if(res == 1){
 		MDB_setStatus(mdb->bin_no,MDB_COL_SUCCESS);
 	}
@@ -153,6 +158,7 @@ void DEV_taskPoll(void)
 				//DEV_mdbReset(mdb);
 				break;
 			case G_MDB_SWITCH:
+				print_dev("G_MDB_SWITCH:\r\n");
 				DEV_mdbSwitch(mdb);
 				break;
 			case G_MDB_CTRL:

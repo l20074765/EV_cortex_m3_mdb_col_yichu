@@ -59,7 +59,6 @@ uint8 MDB_binIsExsit(uint8 no)
 	if(no == 0 || no > MDB_BIN_SIZE){ //柜号不符
 		return 0;
 	}
-	//print_mdb("MDB_binIsExsit:bin[%d]=%d\r\n",no,stMdb[no - 1].exsit);
 	if(stMdb[no - 1].exsit == 1){
 		return 1;
 	}
@@ -388,7 +387,7 @@ unsigned char MDB_colAddrIsOk(unsigned char addr)
 
 unsigned char MDB_recvOk(unsigned char len)
 {
-	unsigned char ok = 0,i;
+	unsigned char ok = 0;
 	switch(mdb_cmd){
 		case RESET : case COLUMN :case POLL :
 			if(len >= 3) ok = 1;
@@ -468,6 +467,7 @@ static uint8 MDB_poll_rpt(void)
 	buf[2] = MDB_getStatus(buf[1]);
 	MDB_setSendStatus(buf[1],buf[2]);	
 	MDB_send(buf,3);
+	print_mdb("POLL:State[%d] = %d\r\n",buf[1],buf[2]);
 	return 1;
 }
 
@@ -494,6 +494,7 @@ static uint8 MDB_switch_rpt(ST_MDB *mdb)
 	mdb->bin_no = recvbuf[1];
 	if(MDB_getStatus(mdb->bin_no) == MDB_COL_BUSY){ 
 		//MDB_sendACK(0); //忙状态不回应
+		print_mdb("Switch:Busy--bin_no = %d\r\n",mdb->bin_no);
 		return 0;
 	}
 	else{
@@ -502,6 +503,8 @@ static uint8 MDB_switch_rpt(ST_MDB *mdb)
 		mdb->col_no = recvbuf[2];
 		MDB_setStatus(mdb->bin_no,MDB_COL_BUSY);
 		MDB_send(buf,2);
+		print_mdb("Switch:bin_no = %d,col_no=%d,bin_addr=%d,col_addr=%d\r\n",
+			mdb->bin_no,mdb->col_no,mdb->bin_addr,mdb->col_addr[mdb->col_no - 1]);
 		return 1;
 	}
 	
@@ -513,15 +516,13 @@ static uint8 MDB_switch_rpt(ST_MDB *mdb)
 
 static uint8 MDB_ctrl_rpt(ST_MDB *mdb)
 {
-	MDB_CTRL *ctrl;
+//	MDB_CTRL *ctrl;
 	uint8 buf[2] = {0};
-	
-	mdb->bin_no = recvbuf[1];
-	
 	buf[0] = MDB_ADDR + CTRL;
 	buf[1] = recvbuf[1];
-	
-	
+	MDB_send(buf,2);
+	return 1;
+	#if 0
 	if(MDB_getStatus(mdb->bin_no) == MDB_COL_BUSY){
 		//MDB_sendACK(0);
 		return 0;
@@ -538,6 +539,7 @@ static uint8 MDB_ctrl_rpt(ST_MDB *mdb)
 		MDB_send(buf,2);
 		return 1;
 	}
+	#endif
 }
 
 static uint8 MDB_column_rpt(ST_MDB *mdb)
