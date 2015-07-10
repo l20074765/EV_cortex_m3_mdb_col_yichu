@@ -63,14 +63,14 @@ static void DEV_mdbCtrl(ST_MDB *mdb)
 	if(mdb->islight == 1){
 		res = EV_bento_light(mdb->bin_addr,mdb->ctrl.lightCtrl);
 	}
-	
+	#if 0
 	if(mdb->iscool == 1){
 		res = EV_bento_col(mdb->bin_addr,mdb->ctrl.coolCtrl);
 	}
 	if(mdb->ishot == 1){
 		res = EV_bento_hot(mdb->bin_addr,mdb->ctrl.hotCtrl);
 	}
-
+	#endif
 	if(res == 1){
 		MDB_setStatus(mdb->bin_no,MDB_COL_IDLE);
 	}

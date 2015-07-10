@@ -44,6 +44,14 @@ static volatile uint8 mdb_cmd = 0;
 
 static volatile uint8 mdb_cur_no = 0;
 
+
+#define MDB_LIGHT_NONE			0
+#define MDB_LIGHT_ON			1
+#define MDB_LIGHT_OFF			2
+
+static volatile uint8 mdb_lightON[MDB_BIN_SIZE] = {MDB_LIGHT_NONE};
+
+
 /*********************************************************************************************************
 ** MDB通信
 *********************************************************************************************************/
@@ -516,19 +524,30 @@ static uint8 MDB_switch_rpt(ST_MDB *mdb)
 
 static uint8 MDB_ctrl_rpt(ST_MDB *mdb)
 {
-//	MDB_CTRL *ctrl;
-	uint8 buf[2] = {0};
+	MDB_CTRL *ctrl = NULL;
+	uint8 buf[2] = {0},lightCtrl = 0,light,bin_no;
 	buf[0] = MDB_ADDR + CTRL;
 	buf[1] = recvbuf[1];
-	MDB_send(buf,2);
-	return 1;
-	#if 0
+	bin_no = recvbuf[1];
+	lightCtrl = (recvbuf[2] >> 1) & 0x01;
+	light = mdb_lightON[bin_no - 1];
+	
+	if(light == MDB_LIGHT_ON && lightCtrl == 1){
+		MDB_send(buf,2);
+		return 1;
+	}
+	
+	if(light == MDB_LIGHT_OFF && lightCtrl == 0){
+		MDB_send(buf,2);
+		return 1;
+	}
+	
 	if(MDB_getStatus(mdb->bin_no) == MDB_COL_BUSY){
-		//MDB_sendACK(0);
 		return 0;
 	}
 	else{
 		mdb->cmd = G_MDB_CTRL;
+		mdb->bin_no = recvbuf[1];
 		ctrl = &mdb->ctrl;
 		ctrl->coolCtrl = recvbuf[2] & 0x01;
 		ctrl->lightCtrl = (recvbuf[2] >> 1) & 0x01;
@@ -537,9 +556,16 @@ static uint8 MDB_ctrl_rpt(ST_MDB *mdb)
 		ctrl->hotTemp  = (int8)recvbuf[4];	
 		MDB_setStatus(mdb->bin_no,MDB_COL_BUSY);
 		MDB_send(buf,2);
+		
+		if(lightCtrl == 1){ //同步信息
+			mdb_lightON[bin_no - 1] = MDB_LIGHT_ON;
+		}
+		else{
+			mdb_lightON[bin_no - 1] = MDB_LIGHT_OFF;
+		}
 		return 1;
 	}
-	#endif
+
 }
 
 static uint8 MDB_column_rpt(ST_MDB *mdb)
