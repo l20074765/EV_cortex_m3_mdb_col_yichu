@@ -179,18 +179,19 @@ void DEV_taskPoll(void)
 
 void DEV_task(void *pdata)
 {	
+	uint8 i;
 	//系统基本接口初始化
 	SystemInit();
 	FIO2DIR &= ~(0x01UL << 2);
 	print_dev("DEV_task:start....\r\n");
-	LED_ctrl(0);
-	msleep(200);
-	LED_ctrl(1);
-	msleep(200);
-	LED_ctrl(0);
-	msleep(200);
-	LED_ctrl(1);
-	msleep(200);
+	LED_setModel(0xFF);
+	for(i = 0;i < 5;i++){
+		LED_ctrl(0);
+		msleep(100);
+		LED_ctrl(1);
+		msleep(100);
+	}
+	
 	DEV_mdbInit();
 	while(1){
 		DEV_taskPoll();

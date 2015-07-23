@@ -153,6 +153,9 @@ void LED_model(void)
 			m_ledModel = 0;
 		}
 	}
+	else if(m_ledModel == 0xFF){
+		tick = 0;
+	}
 	else {
 		if(m_ledIsOpen == 0){
 			LED_ctrl(1);
