@@ -612,6 +612,7 @@ uint8 MDB_analysis(void)
 		return 0;
 	}
 	
+	LED_setModel(2);
 	//print_mdb("Exsit[OK]\r\n");
 	switch(mdb_cmd){
 		case RESET : 

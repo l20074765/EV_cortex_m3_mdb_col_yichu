@@ -36,7 +36,9 @@ unsigned char XorCheck(unsigned char *pstr,unsigned short len);
 unsigned short CrcCheck(unsigned char *msg, unsigned short len);
 void msleep(unsigned int msec);
 
-
+void LED_ctrl(uint8 s);
+void LED_model(void);
+void LED_setModel(uint8 m);
 #endif
 
 

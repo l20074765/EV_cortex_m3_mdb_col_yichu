@@ -83,11 +83,11 @@ static void DEV_mdbCtrl(ST_MDB *mdb)
 
 static void DEV_mdbInit(void)
 {
-	uint8 res,sum,i,col,j,z;
+	uint8 res,sum,i,col,j,z,flag = 0;
 	ST_BIN bin;
 	uint8 binAddr = 1;
 	uint8 exsit[MDB_BIN_SIZE] = {0};
-
+	flag  = 0;
 	for(i = 0;i < MDB_BIN_SIZE;i++){
 		memset((void *)&stMdb[i],0,sizeof(ST_MDB));
 	}
@@ -97,6 +97,7 @@ static void DEV_mdbInit(void)
 		for(j = 0;j < 2;j++){
 			res = EV_bento_check(binAddr,&bin);
 			if(res == 1){
+				flag++;
 				break;
 			}
 		}
@@ -142,6 +143,10 @@ static void DEV_mdbInit(void)
 		print_dev("stMdb[%d].exsit = %d\r\n",i - 1,stMdb[i - 1].exsit);
 	}
 	
+	if(flag == 0){  //无柜子连接
+		LED_setModel(1);
+	}
+	
 }
 
 
@@ -178,7 +183,14 @@ void DEV_task(void *pdata)
 	SystemInit();
 	FIO2DIR &= ~(0x01UL << 2);
 	print_dev("DEV_task:start....\r\n");
-	msleep(500);
+	LED_ctrl(0);
+	msleep(200);
+	LED_ctrl(1);
+	msleep(200);
+	LED_ctrl(0);
+	msleep(200);
+	LED_ctrl(1);
+	msleep(200);
 	DEV_mdbInit();
 	while(1){
 		DEV_taskPoll();
