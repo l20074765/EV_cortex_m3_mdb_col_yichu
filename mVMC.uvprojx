@@ -12,16 +12,16 @@
       <ToolsetName>ARM-ADS</ToolsetName>
       <TargetOption>
         <TargetCommonOption>
-          <Device>LPC1768</Device>
+          <Device>LPC1764</Device>
           <Vendor>NXP</Vendor>
           <PackID>Keil.LPC1700_DFP.2.0.0</PackID>
           <PackURL>http://www.keil.com/pack/</PackURL>
-          <Cpu>IROM(0x00000000,0x80000) IRAM(0x10000000,0x8000) IRAM2(0x2007C000,0x8000) CPUTYPE("Cortex-M3") CLOCK(12000000) ELITTLE</Cpu>
+          <Cpu>IROM(0x00000000,0x20000) IRAM(0x10000000,0x4000) IRAM2(0x2007C000,0x4000) CPUTYPE("Cortex-M3") CLOCK(12000000) ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
           <StartupFile></StartupFile>
-          <FlashDriverDll>UL2CM3(-S0 -C0 -P0 -FD10000000 -FCFE0 -FN1 -FF0LPC_IAP_512 -FS00 -FL080000 -FP0($$Device:LPC1768$Flash\LPC_IAP_512.FLM))</FlashDriverDll>
-          <DeviceId>4868</DeviceId>
-          <RegisterFile>$$Device:LPC1768$Device\Include\LPC17xx.h</RegisterFile>
+          <FlashDriverDll>UL2CM3(-S0 -C0 -P0 -FD10000000 -FCFE0 -FN1 -FF0LPC_IAP_128 -FS00 -FL020000 -FP0($$Device:LPC1764$Flash\LPC_IAP_128.FLM))</FlashDriverDll>
+          <DeviceId>0</DeviceId>
+          <RegisterFile>$$Device:LPC1764$Device\Include\LPC17xx.h</RegisterFile>
           <MemoryEnv></MemoryEnv>
           <Cmp></Cmp>
           <Asm></Asm>
@@ -31,7 +31,7 @@
           <SLE66CMisc></SLE66CMisc>
           <SLE66AMisc></SLE66AMisc>
           <SLE66LinkerMisc></SLE66LinkerMisc>
-          <SFDFile>$$Device:LPC1768$SVD\LPC176x5x.svd</SFDFile>
+          <SFDFile>$$Device:LPC1764$SVD\LPC176x5x.svd</SFDFile>
           <bCustSvd>0</bCustSvd>
           <UseEnv>0</UseEnv>
           <BinPath></BinPath>
@@ -106,13 +106,13 @@
         </CommonProperty>
         <DllOption>
           <SimDllName>SARMCM3.DLL</SimDllName>
-          <SimDllArguments>-MPU</SimDllArguments>
-          <SimDlgDll>DARMP1.DLL</SimDlgDll>
-          <SimDlgDllArguments>-pLPC1768</SimDlgDllArguments>
+          <SimDllArguments>  -MPU</SimDllArguments>
+          <SimDlgDll>DCM.DLL</SimDlgDll>
+          <SimDlgDllArguments>-pCM3</SimDlgDllArguments>
           <TargetDllName>SARMCM3.DLL</TargetDllName>
-          <TargetDllArguments>-MPU</TargetDllArguments>
-          <TargetDlgDll>TARMP1.DLL</TargetDlgDll>
-          <TargetDlgDllArguments>-pLPC1768</TargetDlgDllArguments>
+          <TargetDllArguments> -MPU</TargetDllArguments>
+          <TargetDlgDll>TCM.DLL</TargetDlgDll>
+          <TargetDlgDllArguments>-pCM3</TargetDlgDllArguments>
         </DllOption>
         <DebugOption>
           <OPTHX>
@@ -280,12 +280,12 @@
               <IRAM>
                 <Type>0</Type>
                 <StartAddress>0x10000000</StartAddress>
-                <Size>0x8000</Size>
+                <Size>0x4000</Size>
               </IRAM>
               <IROM>
                 <Type>1</Type>
                 <StartAddress>0x0</StartAddress>
-                <Size>0x80000</Size>
+                <Size>0x20000</Size>
               </IROM>
               <XRAM>
                 <Type>0</Type>
@@ -310,7 +310,7 @@
               <OCR_RVCT4>
                 <Type>1</Type>
                 <StartAddress>0x0</StartAddress>
-                <Size>0x80000</Size>
+                <Size>0x20000</Size>
               </OCR_RVCT4>
               <OCR_RVCT5>
                 <Type>1</Type>
@@ -335,12 +335,12 @@
               <OCR_RVCT9>
                 <Type>0</Type>
                 <StartAddress>0x10000000</StartAddress>
-                <Size>0x8000</Size>
+                <Size>0x4000</Size>
               </OCR_RVCT9>
               <OCR_RVCT10>
                 <Type>0</Type>
                 <StartAddress>0x2007c000</StartAddress>
-                <Size>0x8000</Size>
+                <Size>0x4000</Size>
               </OCR_RVCT10>
             </OnChipMemories>
             <RvctStartVector></RvctStartVector>
